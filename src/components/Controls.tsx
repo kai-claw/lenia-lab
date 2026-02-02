@@ -27,6 +27,7 @@ interface ControlsProps {
   onDtChange: (dt: number) => void;
   onGrowthMuChange: (mu: number) => void;
   onGrowthSigmaChange: (sigma: number) => void;
+  onToggleHelp: () => void;
 }
 
 const COLOR_MAP_NAMES = ['Viridis', 'Magma', 'Inferno', 'Plasma', 'Ocean', 'Neon'];
@@ -51,91 +52,102 @@ export function Controls({
   onSpeciesChange, onToggleRun, onStep, onSpeedChange,
   onColorMapChange, onGridResize, onBrushSizeChange, onToolChange,
   onRandomize, onClear, onToggleGallery, onToggleAdvanced,
-  onDtChange, onGrowthMuChange, onGrowthSigmaChange,
+  onDtChange, onGrowthMuChange, onGrowthSigmaChange, onToggleHelp,
 }: ControlsProps) {
   return (
-    <div className="controls-panel">
+    <div className="controls-panel" role="region" aria-label="Simulation controls">
       {/* ── Simulation ── */}
-      <section className="control-section">
+      <section className="control-section" aria-label="Playback controls">
         <h3 className="section-title">⚡ Simulation</h3>
         <div className="button-row">
           <button
             className={`btn ${isRunning ? 'btn-active' : ''}`}
             onClick={onToggleRun}
+            aria-label={isRunning ? 'Pause simulation' : 'Play simulation'}
+            aria-pressed={isRunning}
           >
             {isRunning ? '⏸ Pause' : '▶ Play'}
           </button>
-          <button className="btn" onClick={onStep}>⏭ Step</button>
+          <button className="btn" onClick={onStep} aria-label="Advance one step">⏭ Step</button>
         </div>
         <div className="button-row">
-          <button className="btn" onClick={onRandomize}>🎲 Random</button>
-          <button className="btn btn-danger" onClick={onClear}>🗑️ Clear</button>
+          <button className="btn" onClick={onRandomize} aria-label="Randomize state">🎲 Random</button>
+          <button className="btn btn-danger" onClick={onClear} aria-label="Clear simulation">🗑️ Clear</button>
         </div>
 
-        <label className="slider-label">
+        <label className="slider-label" id="speed-label">
           Speed: ×{speed}
           <input
             type="range" min="1" max="10" step="1"
             value={speed}
             onChange={(e) => onSpeedChange(parseInt(e.target.value))}
+            aria-labelledby="speed-label"
           />
         </label>
       </section>
 
       {/* ── Species ── */}
-      <section className="control-section">
+      <section className="control-section" aria-label="Species selection">
         <h3 className="section-title">🧬 Species</h3>
-        <div className="species-grid">
+        <div className="species-grid" role="radiogroup" aria-label="Choose a species">
           {Object.entries(SPECIES).map(([id, sp]) => (
             <button
               key={id}
               className={`species-btn ${species === id ? 'species-active' : ''}`}
               onClick={() => onSpeciesChange(id)}
               title={sp.description}
+              role="radio"
+              aria-checked={species === id}
+              aria-label={`${sp.name}: ${sp.description}`}
             >
-              <span className="species-emoji">{SPECIES_EMOJIS[id] || '🧬'}</span>
+              <span className="species-emoji" aria-hidden="true">{SPECIES_EMOJIS[id] || '🧬'}</span>
               <span className="species-name">{sp.name}</span>
             </button>
           ))}
         </div>
-        <button className="btn btn-full btn-accent" onClick={onToggleGallery}>
+        <button className="btn btn-full btn-accent" onClick={onToggleGallery} aria-label="Open creature gallery">
           🦠 Creature Gallery
         </button>
       </section>
 
       {/* ── Drawing ── */}
-      <section className="control-section">
+      <section className="control-section" aria-label="Drawing tools">
         <h3 className="section-title">🖌️ Drawing</h3>
-        <div className="button-row">
+        <div className="button-row" role="radiogroup" aria-label="Select drawing tool">
           {(['draw', 'erase', 'stamp'] as const).map((t) => (
             <button
               key={t}
               className={`btn ${tool === t ? 'btn-active' : ''}`}
               onClick={() => onToolChange(t)}
+              role="radio"
+              aria-checked={tool === t}
+              aria-label={`${t} tool`}
             >
               {t === 'draw' ? '🖌️' : t === 'erase' ? '🧹' : '🔖'} {t}
             </button>
           ))}
         </div>
-        <label className="slider-label">
+        <label className="slider-label" id="brush-label">
           Brush Size: {brushSize.toFixed(2)}
           <input
             type="range" min="0.01" max="0.15" step="0.005"
             value={brushSize}
             onChange={(e) => onBrushSizeChange(parseFloat(e.target.value))}
+            aria-labelledby="brush-label"
           />
         </label>
       </section>
 
       {/* ── Visual ── */}
-      <section className="control-section">
+      <section className="control-section" aria-label="Visual settings">
         <h3 className="section-title">🎨 Visual</h3>
-        <label className="slider-label">
+        <label className="slider-label" id="colormap-label">
           Color Map:
           <select
             className="select-input"
             value={colorMap}
             onChange={(e) => onColorMapChange(parseInt(e.target.value))}
+            aria-labelledby="colormap-label"
           >
             {COLOR_MAP_NAMES.map((name, i) => (
               <option key={name} value={i}>{name}</option>
@@ -144,12 +156,15 @@ export function Controls({
         </label>
         <label className="slider-label">
           Grid Size:
-          <div className="button-row">
+          <div className="button-row" role="radiogroup" aria-label="Select grid size">
             {GRID_SIZES.map((s) => (
               <button
                 key={s}
                 className={`btn btn-sm ${gridSize === s ? 'btn-active' : ''}`}
                 onClick={() => onGridResize(s)}
+                role="radio"
+                aria-checked={gridSize === s}
+                aria-label={`${s} by ${s} grid`}
               >
                 {s}²
               </button>
@@ -159,38 +174,53 @@ export function Controls({
       </section>
 
       {/* ── Advanced ── */}
-      <section className="control-section">
-        <button className="btn btn-full" onClick={onToggleAdvanced}>
+      <section className="control-section" aria-label="Advanced parameters">
+        <button
+          className="btn btn-full"
+          onClick={onToggleAdvanced}
+          aria-expanded={showAdvanced}
+          aria-controls="advanced-params"
+        >
           {showAdvanced ? '▾ Advanced' : '▸ Advanced'}
         </button>
         {showAdvanced && (
-          <div className="advanced-params">
-            <label className="slider-label">
+          <div className="advanced-params" id="advanced-params">
+            <label className="slider-label" id="dt-label">
               dt: {dt.toFixed(3)}
               <input
                 type="range" min="0.01" max="0.5" step="0.005"
                 value={dt}
                 onChange={(e) => onDtChange(parseFloat(e.target.value))}
+                aria-labelledby="dt-label"
               />
             </label>
-            <label className="slider-label">
+            <label className="slider-label" id="mu-label">
               Growth μ: {growthMu.toFixed(4)}
               <input
                 type="range" min="0.01" max="0.5" step="0.001"
                 value={growthMu}
                 onChange={(e) => onGrowthMuChange(parseFloat(e.target.value))}
+                aria-labelledby="mu-label"
               />
             </label>
-            <label className="slider-label">
+            <label className="slider-label" id="sigma-label">
               Growth σ: {growthSigma.toFixed(4)}
               <input
                 type="range" min="0.001" max="0.1" step="0.001"
                 value={growthSigma}
                 onChange={(e) => onGrowthSigmaChange(parseFloat(e.target.value))}
+                aria-labelledby="sigma-label"
               />
             </label>
           </div>
         )}
+      </section>
+
+      {/* ── Help ── */}
+      <section className="control-section">
+        <button className="btn btn-full" onClick={onToggleHelp} aria-label="Show keyboard shortcuts">
+          ❓ Shortcuts
+        </button>
       </section>
     </div>
   );

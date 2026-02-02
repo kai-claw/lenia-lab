@@ -21,11 +21,11 @@ const CREATURE_EMOJIS: Record<string, string> = {
 
 export function CreatureGallery({ onSelect, onPlace, onClose }: GalleryProps) {
   return (
-    <div className="gallery-overlay" onClick={onClose}>
+    <div className="gallery-overlay" onClick={onClose} role="dialog" aria-label="Creature Gallery" aria-modal="true">
       <div className="gallery-panel" onClick={e => e.stopPropagation()}>
         <div className="gallery-header">
           <h2>🦠 Creature Gallery</h2>
-          <button className="btn btn-close" onClick={onClose}>✕</button>
+          <button className="btn btn-close" onClick={onClose} aria-label="Close gallery">✕</button>
         </div>
         <p className="gallery-intro">
           Select a species to load its rules and place a seed organism.
