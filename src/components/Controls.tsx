@@ -28,6 +28,9 @@ interface ControlsProps {
   onGrowthMuChange: (mu: number) => void;
   onGrowthSigmaChange: (sigma: number) => void;
   onToggleHelp: () => void;
+  onPetriDish: () => void;
+  cinematic: boolean;
+  onCinematicToggle: () => void;
 }
 
 const COLOR_MAP_NAMES = ['Viridis', 'Magma', 'Inferno', 'Plasma', 'Ocean', 'Neon'];
@@ -53,6 +56,7 @@ export function Controls({
   onColorMapChange, onGridResize, onBrushSizeChange, onToolChange,
   onRandomize, onClear, onToggleGallery, onToggleAdvanced,
   onDtChange, onGrowthMuChange, onGrowthSigmaChange, onToggleHelp,
+  onPetriDish, cinematic, onCinematicToggle,
 }: ControlsProps) {
   return (
     <div className="controls-panel" role="region" aria-label="Simulation controls">
@@ -107,6 +111,22 @@ export function Controls({
         </div>
         <button className="btn btn-full btn-accent" onClick={onToggleGallery} aria-label="Open creature gallery">
           🦠 Creature Gallery
+        </button>
+      </section>
+
+      {/* ── Experience ── */}
+      <section className="control-section" aria-label="Experience modes">
+        <h3 className="section-title">✨ Experience</h3>
+        <button className="btn btn-full btn-petri" onClick={onPetriDish} aria-label="Seed petri dish with multiple species">
+          🧫 Petri Dish
+        </button>
+        <button
+          className={`btn btn-full ${cinematic ? 'btn-cinematic-active' : 'btn-cinematic'}`}
+          onClick={onCinematicToggle}
+          aria-label={cinematic ? 'Stop cinematic autoplay' : 'Start cinematic autoplay'}
+          aria-pressed={cinematic}
+        >
+          {cinematic ? '⏹ Stop Cinematic' : '🎬 Cinematic Autoplay'}
         </button>
       </section>
 

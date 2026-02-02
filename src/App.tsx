@@ -6,6 +6,9 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import { SPECIES, generateRandomState, generateCreaturePattern, type SpeciesParams } from './gl/kernels';
 import './App.css';
 
+const SPECIES_IDS = Object.keys(SPECIES);
+const CINEMATIC_INTERVAL = 10000; // 10s per species
+
 function App() {
   const canvasRef = useRef<LeniaCanvasHandle>(null);
   
@@ -21,6 +24,11 @@ function App() {
   const [showHelp, setShowHelp] = useState(false);
   const [fps, setFps] = useState(0);
   const [stepCount, setStepCount] = useState(0);
+  
+  // Cinematic autoplay state
+  const [cinematic, setCinematic] = useState(false);
+  const cinematicIdxRef = useRef(0);
+  const [cinematicSpecies, setCinematicSpecies] = useState<string | null>(null);
   
   // Advanced params
   const [dt, setDt] = useState(SPECIES.orbium.dt);
@@ -76,6 +84,91 @@ function App() {
       canvasRef.current.stampCreature(pattern, 64, uvX, uvY);
     }
   }, []);
+
+  // ── Petri Dish: populate canvas with multiple species ──
+  const handlePetriDish = useCallback(() => {
+    if (!canvasRef.current) return;
+    canvasRef.current.clear();
+    setStepCount(0);
+    
+    // Pick 4-6 random species and place at random positions
+    const count = 4 + Math.floor(Math.random() * 3);
+    const shuffled = [...SPECIES_IDS].sort(() => Math.random() - 0.5);
+    const picks = shuffled.slice(0, count);
+    
+    // Use genesis params as base (wide growth window lets most things survive)
+    const genesis = SPECIES.genesis;
+    setSpecies('genesis');
+    setDt(genesis.dt);
+    setGrowthMu(genesis.growth.mu);
+    setGrowthSigma(genesis.growth.sigma);
+    if (canvasRef.current) {
+      canvasRef.current.setKernel(genesis.kernel);
+      canvasRef.current.setGrowth(genesis.growth);
+      canvasRef.current.setDt(genesis.dt);
+    }
+    
+    // Stamp creatures at random positions avoiding edges
+    for (const id of picks) {
+      const pattern = generateCreaturePattern(id, 64);
+      const uvX = 0.15 + Math.random() * 0.7;
+      const uvY = 0.15 + Math.random() * 0.7;
+      canvasRef.current.stampCreature(pattern, 64, uvX, uvY);
+    }
+    
+    if (!isRunning) setIsRunning(true);
+  }, [isRunning]);
+
+  // ── Cinematic Autoplay ──
+  const handleCinematicToggle = useCallback(() => {
+    setCinematic(prev => {
+      if (!prev) {
+        // Starting cinematic — begin from current index
+        return true;
+      }
+      setCinematicSpecies(null);
+      return false;
+    });
+  }, []);
+
+  // Cinematic autoplay effect
+  useEffect(() => {
+    if (!cinematic) return;
+
+    const placeSpecies = () => {
+      const idx = cinematicIdxRef.current % SPECIES_IDS.length;
+      const id = SPECIES_IDS[idx];
+      const sp = SPECIES[id];
+      cinematicIdxRef.current = idx + 1;
+      
+      // Update species state
+      setSpecies(id);
+      setDt(sp.dt);
+      setGrowthMu(sp.growth.mu);
+      setGrowthSigma(sp.growth.sigma);
+      setCinematicSpecies(id);
+      
+      if (canvasRef.current) {
+        canvasRef.current.clear();
+        canvasRef.current.setKernel(sp.kernel);
+        canvasRef.current.setGrowth(sp.growth);
+        canvasRef.current.setDt(sp.dt);
+        
+        // Place creature at center
+        const pattern = generateCreaturePattern(id, 64);
+        canvasRef.current.stampCreature(pattern, 64, 0.5, 0.5);
+      }
+      
+      setStepCount(0);
+      if (!isRunning) setIsRunning(true);
+    };
+    
+    // Place first species immediately
+    placeSpecies();
+    
+    const interval = setInterval(placeSpecies, CINEMATIC_INTERVAL);
+    return () => clearInterval(interval);
+  }, [cinematic]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleGridResize = useCallback((size: number) => {
     setGridSize(size);
@@ -157,10 +250,23 @@ function App() {
               onGrowthMuChange={safeSetGrowthMu}
               onGrowthSigmaChange={safeSetGrowthSigma}
               onToggleHelp={handleToggleHelp}
+              onPetriDish={handlePetriDish}
+              cinematic={cinematic}
+              onCinematicToggle={handleCinematicToggle}
             />
           </aside>
 
           <main className="canvas-area" role="main" aria-label="Simulation display">
+            {/* Cinematic species badge */}
+            {cinematic && cinematicSpecies && SPECIES[cinematicSpecies] && (
+              <div className="cinematic-badge" aria-live="polite">
+                <div className="cinematic-badge-indicator" />
+                <div className="cinematic-badge-content">
+                  <span className="cinematic-badge-name">{SPECIES[cinematicSpecies].name}</span>
+                  <span className="cinematic-badge-desc">{SPECIES[cinematicSpecies].description}</span>
+                </div>
+              </div>
+            )}
             <LeniaCanvas
               ref={canvasRef}
               gridWidth={gridSize}
@@ -177,6 +283,8 @@ function App() {
               onRandomize={handleRandomize}
               onClear={handleClear}
               onToggleHelp={handleToggleHelp}
+              onPetriDish={handlePetriDish}
+              onCinematicToggle={handleCinematicToggle}
             />
             
             {showGallery && (
@@ -201,6 +309,8 @@ function App() {
                     <div className="help-row"><kbd>Space</kbd><span>Play / Pause</span></div>
                     <div className="help-row"><kbd>R</kbd><span>Randomize</span></div>
                     <div className="help-row"><kbd>C</kbd><span>Clear</span></div>
+                    <div className="help-row"><kbd>E</kbd><span>Petri Dish — seed ecosystem</span></div>
+                    <div className="help-row"><kbd>A</kbd><span>Cinematic autoplay</span></div>
                     <div className="help-row"><kbd>H</kbd><span>Toggle this help</span></div>
                   </div>
                   <p className="help-hint">Click canvas to draw. Switch tools in the sidebar.</p>

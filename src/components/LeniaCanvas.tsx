@@ -28,12 +28,14 @@ interface Props {
   onRandomize: () => void;
   onClear: () => void;
   onToggleHelp: () => void;
+  onPetriDish?: () => void;
+  onCinematicToggle?: () => void;
 }
 
 export const LeniaCanvas = forwardRef<LeniaCanvasHandle, Props>(({
   gridWidth, gridHeight, isRunning, speed, colorMap, species,
   brushSize, tool, onFpsUpdate, onStepUpdate,
-  onToggleRun, onRandomize, onClear, onToggleHelp,
+  onToggleRun, onRandomize, onClear, onToggleHelp, onPetriDish, onCinematicToggle,
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<LeniaRenderer | null>(null);
@@ -212,12 +214,20 @@ export const LeniaCanvas = forwardRef<LeniaCanvasHandle, Props>(({
         case '?':
           onToggleHelp();
           break;
+        case 'e':
+        case 'E':
+          onPetriDish?.();
+          break;
+        case 'a':
+        case 'A':
+          onCinematicToggle?.();
+          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onToggleRun, onRandomize, onClear, onToggleHelp]);
+  }, [onToggleRun, onRandomize, onClear, onToggleHelp, onPetriDish, onCinematicToggle]);
 
   // Mouse/touch drawing handlers
   const getUV = useCallback((e: { clientX: number; clientY: number }) => {
