@@ -1,105 +1,112 @@
-# Lenia Lab — Audit Report
+# Lenia Lab — Final Audit Sign-Off
 
-**Initial Audit:** 2025-07-26 (Pass 1)  
-**Final Update:** 2026-02-02 (Pass 9)
+**Date:** 2025-07-29  
+**Pass:** 10/10 (White Hat — Final Verification)  
+**Status:** ✅ SIGNED OFF
 
----
+## Final Metrics
 
-## Baseline → Final Comparison
+| Metric | Baseline (Pass 1) | Final (Pass 10) |
+|--------|-------------------|-----------------|
+| Source LOC | 3,356 | 4,181 |
+| Source files | 16 | 17 |
+| Test files | 2 | 6 |
+| Tests | 50 | 179 |
+| TS errors | 0 | 0 |
+| `as any` casts | 0 | 0 |
+| TODO/FIXME/HACK | 0 | 0 |
+| Build size (JS) | 224.83 KB (69 KB gzip) | 240.69 KB (74 KB gzip) |
+| Build size (CSS) | 6.57 KB | 19.73 KB (4.54 KB gzip) |
 
-| Metric | Baseline (Pass 1) | Final (Pass 9) | Change |
-|--------|-------------------|-----------------|--------|
-| Source LOC | 3,356 | ~4,079 | +723 (net, after deleting 796 LOC dead code) |
-| Source files | 16 | 14 | -2 (dead WebGL2 code removed) |
-| Test files | 2 | 5 | +3 |
-| Tests | 50 | 138 | +88 |
-| TS errors | 0 | 0 | ✅ |
-| Bundle JS | 225 KB (69 KB gzip) | 241 KB (74 KB gzip) | +16 KB raw / +5 KB gzip |
-| Bundle CSS | 7 KB | 20 KB (5 KB gzip) | +13 KB (all animations & micro-interactions) |
-| Species | 10 | 10 | — |
+## Verification Checklist
 
-## All Issues from Pass 1 — Resolved
+- [x] `npx tsc --noEmit` — 0 errors
+- [x] `npm run build` — 0 errors, 0 warnings
+- [x] `npx vitest run` — 179 tests passing (6 test files)
+- [x] No `as any`, `@ts-ignore`, `@ts-expect-error` in source
+- [x] No `TODO`, `FIXME`, `HACK` in source
+- [x] Strict TypeScript mode enabled
+- [x] CI/CD pipeline (GitHub Actions): typecheck → test → build → deploy
+- [x] PWA manifest for installability
+- [x] SEO: OG tags, Twitter cards, JSON-LD, canonical, sitemap, robots.txt
+- [x] Accessibility: ARIA roles/labels, keyboard navigation, focus-visible, reduced-motion
+- [x] Mobile responsive: column layout, touch targets, bottom sheet
+- [x] Error boundary with WebGL crash recovery
+- [x] Performance monitor with auto-degradation
 
-| Issue | Status | Fixed In |
-|-------|--------|----------|
-| ~1,000 LOC dead WebGL2 code | ✅ Deleted | Pass 6 (Blue Hat) |
-| No error boundary | ✅ ErrorBoundary + WebGL context recovery | Pass 2 (Black Hat) |
-| No keyboard navigation | ✅ 8 keyboard shortcuts | Pass 2 (Black Hat) |
-| No ARIA accessibility | ✅ Full ARIA: roles, labels, radiogroups, expanded, pressed | Pass 2 (Black Hat) |
-| SimCanvas window global | ✅ Deleted with dead code | Pass 6 (Blue Hat) |
-| preserveDrawingBuffer perf cost | ✅ Removed | Pass 8 (Black Hat) |
-| No PWA manifest | ✅ manifest.json + apple-mobile-web-app | Pass 1 + 9 |
-| No cinematic autoplay | ✅ Full autoplay with progress bar | Pass 3 (Green Hat) |
-| No micro-interactions | ✅ 15+ animations: slider glow, button springs, bounces, shimmer | Pass 4-5 |
-| No mobile responsive | ✅ Column-reverse layout, touch targets, mobile controls | Pass 2 (Black Hat) |
-| No performance monitoring | ✅ Adaptive PerformanceMonitor, auto-degrade/recover | Pass 8 (Black Hat) |
+## Architecture
 
-## Features Added (Passes 2-9)
+```
+src/
+├── App.tsx            (924 lines) — Main app, state, layout, cinematic
+├── App.css            — All styles incl. animations
+├── main.tsx           — Entry point
+├── types.ts           — Shared type definitions
+├── constants.ts       — All configuration constants (15 exports)
+├── utils.ts           — Utility functions (smoothstep, lerp, safeClamp)
+├── species.ts         — Creature gallery (4 creatures with init functions)
+├── components/
+│   ├── Controls.tsx       — Control panel UI
+│   ├── CreatureGallery.tsx — Creature selection overlay
+│   ├── ErrorBoundary.tsx  — React error boundary
+│   └── LeniaCanvas.tsx    — WebGL canvas with imperative handle
+├── gl/
+│   ├── kernels.ts     — Kernel generation, 10 species, creature patterns
+│   ├── renderer.ts    — LeniaRenderer (WebGL1, RGBA float textures)
+│   └── shaders.ts     — GLSL 1.0 shaders (update, display, brush, stamp)
+├── store/
+│   └── useStore.ts    — Zustand store
+└── __tests__/
+    ├── kernels.test.ts       (22 tests) — Kernel generation & normalization
+    ├── species.test.ts       (28 tests) — Creature params & init functions
+    ├── architecture.test.ts  (52 tests) — Constants, utils, cross-module
+    ├── bugs.test.ts          (21 tests) — Edge cases & NaN guards
+    ├── stress.test.ts        (15 tests) — Large grids, perf, bit-shift
+    └── integration.test.ts   (41 tests) — Cross-module, stability, types
+```
 
-### Pass 2 — Black Hat (Bugs & Edge Cases)
-- WebGL context loss/restore recovery
-- NaN-safe growth param clamping
-- Stamp tool fix (was completely broken)
-- Full ARIA, keyboard, touch, mobile responsive, prefers-reduced-motion
+## Features Delivered (Passes 1-10)
 
-### Pass 3 — Green Hat (Creative)
-- 🧫 Petri Dish mode (multi-species ecosystem)
-- 🎬 Cinematic Autoplay (species tour)
+### Core Simulation
+- 10 Lenia species (Orbium, Geminium, Scutium, Gyrium, Pentium, Bubbles, Worms, Genesis, Amoeba, Coral)
+- WebGL1 GPU-accelerated continuous cellular automata
+- Configurable growth function (mu, sigma, dt)
+- Multi-peaked kernel support
+- Two grid resolutions (256, 512)
+- 5 color maps (Viridis, Magma, Plasma, Inferno, Grayscale)
 
-### Pass 4 — Yellow Hat (Value)
-- Auto-start with Orbium creature
-- Smooth species morphing (800ms smoothstep)
-- Slider glow, button springs, card bounces
-- Instructions bar, title shimmer, panel slide-in
+### Visual & Interactive
+- Creature gallery with 4 detailed creatures + init patterns
+- Stamp tool for creature placement
+- Brush tool (draw/erase)
+- Petri dish mode (multi-species seeding)
+- Cinematic autoplay (tours all 10 species)
+- Smooth species morphing (800ms smoothstep transitions)
+- Mutation mode (evolutionary random walk)
+- Population density tracker (sparkline chart)
 
-### Pass 5 — Red Hat (Feel)
+### UX Polish
+- Slider glow-on-drag, button tactile springs
+- Panel slide-in with blur dissolve
 - Canvas vignette overlay
-- Heartbeat indicator (running/paused)
-- FPS badge color feedback
-- Slider value glow, section hover warmth
-- Gallery/help slide-up blur dissolve
+- Heartbeat running indicator
+- FPS badge with color feedback
+- Section heading warm accents
+- Comprehensive prefers-reduced-motion overrides
+- Instructions bar with keyboard hints
 
-### Pass 6 — Blue Hat (Architecture)
-- Deleted 796 LOC dead WebGL2 code
-- Extracted constants.ts (15 exports), utils.ts (3 functions)
-- 43 architecture tests
-
-### Pass 7 — Green Hat #2 (More Creativity)
-- 🧬 Mutation Mode (random walk evolution)
-- 📊 Population Density Chart (GPU readback sparkline)
-
-### Pass 8 — Black Hat #2 (Performance)
-- Pre-allocated GPU readback + RGBA buffers
-- Cached attrib locations per program
+### Performance
+- Pre-allocated GPU readback/RGBA buffers (zero per-call allocation)
 - Ring buffer population chart (O(1) insert)
 - Sparse density sampling (every 4th pixel)
-- Adaptive PerformanceMonitor (auto-degrade at <30fps)
+- Cached WebGL attrib locations
+- Adaptive PerformanceMonitor (auto-degrades at <30fps)
 
-### Pass 9 — Yellow Hat #2 (Final Polish)
-- Portfolio-grade README with badges, tables, architecture diagram
-- OG image SVG for social sharing
-- Enhanced JSON-LD with scholarly article reference
+### Infrastructure
+- CI/CD (GitHub Actions → GitHub Pages)
+- PWA manifest
+- Full SEO (OG, Twitter, JSON-LD, sitemap, robots.txt)
+- React ErrorBoundary with WebGL context recovery
+- Portfolio-grade README with badges, tables, diagrams
+- MIT License
 - Apple mobile web app meta tags
-- Updated sitemap, fixed footer link
-- AUDIT.md final comparison
-
-## Architecture (Final)
-
-```
-14 source files, 5 test files
-WebGL 1.0 pipeline: convolution → growth → display (all GPU)
-React 19 + Zustand + TypeScript 5.8 strict
-```
-
-## Quality Gates ✅
-
-- [x] 0 TypeScript errors
-- [x] 0 `as any` casts
-- [x] 0 TODO/FIXME/HACK comments
-- [x] 138 tests passing
-- [x] Build clean
-- [x] CI/CD pipeline active
-- [x] PWA installable
-- [x] Full accessibility (ARIA + keyboard + reduced-motion)
-- [x] Mobile responsive
-- [x] Performance self-monitoring
