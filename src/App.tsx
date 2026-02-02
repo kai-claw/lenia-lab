@@ -4,33 +4,35 @@ import { Controls } from './components/Controls';
 import { CreatureGallery } from './components/CreatureGallery';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SPECIES, generateCreaturePattern, type SpeciesParams } from './gl/kernels';
+import {
+  SPECIES_IDS,
+  CINEMATIC_INTERVAL,
+  MORPH_DURATION,
+  DEFAULT_GRID_SIZE,
+  DEFAULT_COLOR_MAP,
+  DEFAULT_SPECIES,
+  DEFAULT_BRUSH_SIZE,
+  RANDOMIZE_COUNT,
+  PETRI_DISH_MIN,
+  PETRI_DISH_RANGE,
+  PLACEMENT_MARGIN,
+  GROWTH_MU_RANGE,
+  GROWTH_SIGMA_RANGE,
+  DT_RANGE,
+} from './constants';
+import { smoothstep, lerp, safeClamp } from './utils';
 import './App.css';
-
-const SPECIES_IDS = Object.keys(SPECIES);
-const CINEMATIC_INTERVAL = 10000; // 10s per species
-const MORPH_DURATION = 800; // ms for smooth species morphing
-
-/** Smoothstep interpolation */
-function smoothstep(t: number): number {
-  const c = Math.max(0, Math.min(1, t));
-  return c * c * (3 - 2 * c);
-}
-
-/** Lerp a number */
-function lerp(a: number, b: number, t: number): number {
-  return a + (b - a) * t;
-}
 
 function App() {
   const canvasRef = useRef<LeniaCanvasHandle>(null);
 
   // Simulation state
-  const [species, setSpecies] = useState<string>('orbium');
+  const [species, setSpecies] = useState<string>(DEFAULT_SPECIES);
   const [isRunning, setIsRunning] = useState(false);
   const [speed, setSpeed] = useState(1);
-  const [colorMap, setColorMap] = useState(1); // Magma — visually striking default
-  const [gridSize, setGridSize] = useState(256);
-  const [brushSize, setBrushSize] = useState(0.03);
+  const [colorMap, setColorMap] = useState(DEFAULT_COLOR_MAP);
+  const [gridSize, setGridSize] = useState(DEFAULT_GRID_SIZE);
+  const [brushSize, setBrushSize] = useState(DEFAULT_BRUSH_SIZE);
   const [tool, setTool] = useState<'draw' | 'erase' | 'stamp'>('draw');
   const [showGallery, setShowGallery] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -45,16 +47,16 @@ function App() {
   const [cinematicProgress, setCinematicProgress] = useState(0);
   const cinematicTimerRef = useRef(0);
 
-  // Advanced params
-  const [dt, setDt] = useState(SPECIES.orbium.dt);
-  const [growthMu, setGrowthMu] = useState(SPECIES.orbium.growth.mu);
-  const [growthSigma, setGrowthSigma] = useState(SPECIES.orbium.growth.sigma);
+  // Advanced params (initialized from default species)
+  const [dt, setDt] = useState(SPECIES[DEFAULT_SPECIES].dt);
+  const [growthMu, setGrowthMu] = useState(SPECIES[DEFAULT_SPECIES].growth.mu);
+  const [growthSigma, setGrowthSigma] = useState(SPECIES[DEFAULT_SPECIES].growth.sigma);
   const [showAdvanced, setShowAdvanced] = useState(false);
 
   // Morphing ref for smooth species transitions
   const morphRef = useRef<{ animId: number } | null>(null);
 
-  const currentSpecies: SpeciesParams = SPECIES[species] || SPECIES.orbium;
+  const currentSpecies: SpeciesParams = SPECIES[species] || SPECIES[DEFAULT_SPECIES];
 
   // ── Auto-start: place Orbium at center and run on first load ──
   useEffect(() => {
@@ -62,7 +64,7 @@ function App() {
     const timer = setTimeout(() => {
       if (canvasRef.current) {
         canvasRef.current.clear();
-        const pattern = generateCreaturePattern('orbium', 64);
+        const pattern = generateCreaturePattern(DEFAULT_SPECIES, 64);
         canvasRef.current.stampCreature(pattern, 64, 0.5, 0.5);
         setIsRunning(true);
         setHasBooted(true);
@@ -130,12 +132,11 @@ function App() {
 
   const handleRandomize = useCallback(() => {
     if (canvasRef.current) {
-      // Place 3 creatures of the current species at random positions
       canvasRef.current.clear();
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < RANDOMIZE_COUNT; i++) {
         const pattern = generateCreaturePattern(species, 64);
-        const uvX = 0.2 + Math.random() * 0.6;
-        const uvY = 0.2 + Math.random() * 0.6;
+        const uvX = PLACEMENT_MARGIN + Math.random() * (1 - 2 * PLACEMENT_MARGIN);
+        const uvY = PLACEMENT_MARGIN + Math.random() * (1 - 2 * PLACEMENT_MARGIN);
         canvasRef.current.stampCreature(pattern, 64, uvX, uvY);
       }
       setStepCount(0);
@@ -173,8 +174,7 @@ function App() {
     canvasRef.current.clear();
     setStepCount(0);
 
-    // Pick 4-6 random species and place at random positions
-    const count = 4 + Math.floor(Math.random() * 3);
+    const count = PETRI_DISH_MIN + Math.floor(Math.random() * PETRI_DISH_RANGE);
     const shuffled = [...SPECIES_IDS].sort(() => Math.random() - 0.5);
     const picks = shuffled.slice(0, count);
 
@@ -193,8 +193,8 @@ function App() {
     // Stamp creatures at random positions avoiding edges
     for (const id of picks) {
       const pattern = generateCreaturePattern(id, 64);
-      const uvX = 0.15 + Math.random() * 0.7;
-      const uvY = 0.15 + Math.random() * 0.7;
+      const uvX = PLACEMENT_MARGIN + Math.random() * (1 - 2 * PLACEMENT_MARGIN);
+      const uvY = PLACEMENT_MARGIN + Math.random() * (1 - 2 * PLACEMENT_MARGIN);
       canvasRef.current.stampCreature(pattern, 64, uvX, uvY);
     }
 
@@ -283,20 +283,17 @@ function App() {
     }
   }, [growthMu, growthSigma, dt]);
 
-  // Validate growth params — clamp to safe ranges
+  // Validate growth params — clamp to safe ranges using shared utility
   const safeSetGrowthMu = useCallback((v: number) => {
-    const clamped = Math.max(0.01, Math.min(0.5, isNaN(v) ? 0.15 : v));
-    setGrowthMu(clamped);
+    setGrowthMu(safeClamp(v, GROWTH_MU_RANGE.min, GROWTH_MU_RANGE.max, GROWTH_MU_RANGE.fallback));
   }, []);
 
   const safeSetGrowthSigma = useCallback((v: number) => {
-    const clamped = Math.max(0.001, Math.min(0.1, isNaN(v) ? 0.015 : v));
-    setGrowthSigma(clamped);
+    setGrowthSigma(safeClamp(v, GROWTH_SIGMA_RANGE.min, GROWTH_SIGMA_RANGE.max, GROWTH_SIGMA_RANGE.fallback));
   }, []);
 
   const safeSetDt = useCallback((v: number) => {
-    const clamped = Math.max(0.01, Math.min(0.5, isNaN(v) ? 0.1 : v));
-    setDt(clamped);
+    setDt(safeClamp(v, DT_RANGE.min, DT_RANGE.max, DT_RANGE.fallback));
   }, []);
 
   return (
