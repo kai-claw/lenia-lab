@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://kai-claw.github.io/lenia-lab/sitemap.xml

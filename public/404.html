@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lenia Lab — Page Not Found</title>
+  <meta name="theme-color" content="#0a0a1a" />
+  <script>
+    // SPA redirect for GitHub Pages
+    const path = window.location.pathname;
+    if (path !== '/' && path !== '/index.html') {
+      window.location.replace('/' + window.location.search + window.location.hash);
+    }
+  </script>
+  <style>
+    body { margin: 0; background: #0a0a1a; color: #c8dcff; font-family: system-ui, sans-serif;
+      display: flex; align-items: center; justify-content: center; height: 100vh; text-align: center; }
+    a { color: #64c8ff; }
+  </style>
+</head>
+<body>
+  <div>
+    <h1>🧬 Lenia Lab</h1>
+    <p>Page not found. <a href="/">Return to simulation →</a></p>
+  </div>
+</body>
+</html>
