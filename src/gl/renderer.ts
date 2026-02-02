@@ -40,16 +40,26 @@ export class LeniaRenderer {
   // Stamp texture for creatures
   private stampTex: WebGLTexture | null = null;
 
+  // ── Pre-allocated buffers (zero-alloc hot path) ──
+  private _readbackBuffer: Float32Array;  // for readAverageDensity — reused
+  private _rgbaBuffer: Float32Array;      // for setState RGBA expansion — reused
+  private _attribLocs: Map<WebGLProgram, number> = new Map(); // cached attrib locations
+
   constructor(canvas: HTMLCanvasElement, gridWidth: number = 256, gridHeight: number = 256) {
     const gl = canvas.getContext('webgl', {
       premultipliedAlpha: false,
-      preserveDrawingBuffer: true,
+      // preserveDrawingBuffer removed — extra buffer copy per frame hurts perf
     });
     if (!gl) throw new Error('WebGL not supported');
     
     this.gl = gl;
     this._gridWidth = gridWidth;
     this._gridHeight = gridHeight;
+    
+    // Pre-allocate buffers sized for this grid (resized in resize())
+    const totalCells = gridWidth * gridHeight;
+    this._readbackBuffer = new Float32Array(totalCells * 4);
+    this._rgbaBuffer = new Float32Array(totalCells * 4);
     
     // Required extension for float textures
     this.ext = gl.getExtension('OES_texture_float');
@@ -213,12 +223,16 @@ export class LeniaRenderer {
     const gl = this.gl;
     const tex = this.currentTex === 'A' ? this.texA! : this.texB!;
     
-    const rgba = new Float32Array(this._gridWidth * this._gridHeight * 4);
-    for (let i = 0; i < this._gridWidth * this._gridHeight; i++) {
-      rgba[i * 4] = data[i];
-      rgba[i * 4 + 1] = data[i];
-      rgba[i * 4 + 2] = data[i];
-      rgba[i * 4 + 3] = 1;
+    // Reuse pre-allocated RGBA buffer (no per-call allocation)
+    const rgba = this._rgbaBuffer;
+    const total = this._gridWidth * this._gridHeight;
+    for (let i = 0; i < total; i++) {
+      const v = data[i];
+      const idx = i << 2; // i * 4 via bit shift
+      rgba[idx] = v;
+      rgba[idx + 1] = v;
+      rgba[idx + 2] = v;
+      rgba[idx + 3] = 1;
     }
     
     gl.bindTexture(gl.TEXTURE_2D, tex);
@@ -231,15 +245,17 @@ export class LeniaRenderer {
   readState(): Float32Array {
     const gl = this.gl;
     const fb = this.currentTex === 'A' ? this.fbA! : this.fbB!;
-    const pixels = new Float32Array(this._gridWidth * this._gridHeight * 4);
+    // Reuse pre-allocated readback buffer
+    const pixels = this._readbackBuffer;
     
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
     gl.readPixels(0, 0, this._gridWidth, this._gridHeight, gl.RGBA, gl.FLOAT, pixels);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     
-    const state = new Float32Array(this._gridWidth * this._gridHeight);
-    for (let i = 0; i < state.length; i++) {
-      state[i] = pixels[i * 4];
+    const total = this._gridWidth * this._gridHeight;
+    const state = new Float32Array(total);
+    for (let i = 0; i < total; i++) {
+      state[i] = pixels[i << 2]; // i * 4 via bit shift
     }
     return state;
   }
@@ -374,6 +390,10 @@ export class LeniaRenderer {
   resize(width: number, height: number) {
     this._gridWidth = width;
     this._gridHeight = height;
+    // Re-allocate pre-allocated buffers for new grid size
+    const totalCells = width * height;
+    this._readbackBuffer = new Float32Array(totalCells * 4);
+    this._rgbaBuffer = new Float32Array(totalCells * 4);
     this.createFramebuffers();
   }
 
@@ -382,13 +402,23 @@ export class LeniaRenderer {
    */
   clear() {
     const gl = this.gl;
-    const data = new Float32Array(this._gridWidth * this._gridHeight);
-    this.setState(data);
+    // Direct GPU clear — no CPU-side allocation needed
+    const fb = this.currentTex === 'A' ? this.fbA! : this.fbB!;
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.viewport(0, 0, this._gridWidth, this._gridHeight);
+    gl.clearColor(0, 0, 0, 1);
+    gl.clear(gl.COLOR_BUFFER_BIT);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
   }
 
   private drawQuad(program: WebGLProgram) {
     const gl = this.gl;
-    const posLoc = gl.getAttribLocation(program, 'a_position');
+    // Cache attrib location per program (avoids GL query every draw call)
+    let posLoc = this._attribLocs.get(program);
+    if (posLoc === undefined) {
+      posLoc = gl.getAttribLocation(program, 'a_position');
+      this._attribLocs.set(program, posLoc);
+    }
     gl.bindBuffer(gl.ARRAY_BUFFER, this.quadBuffer);
     gl.enableVertexAttribArray(posLoc);
     gl.vertexAttribPointer(posLoc, 2, gl.FLOAT, false, 0, 0);
@@ -398,23 +428,34 @@ export class LeniaRenderer {
   /**
    * Read average cell density from current state (for population tracking)
    */
+  /**
+   * Read average cell density via sparse sampling.
+   * Instead of reading the entire framebuffer (256×256×4 floats = 1MB),
+   * reads the full buffer into a pre-allocated array and samples every Nth pixel.
+   * The pre-allocated buffer eliminates per-call GC pressure entirely.
+   */
   readAverageDensity(): number {
     const gl = this.gl;
     const fb = this.currentTex === 'A' ? this.fbA! : this.fbB!;
     const w = this._gridWidth;
     const h = this._gridHeight;
-    const pixels = new Float32Array(w * h * 4);
+    const total = w * h;
+    // Reuse pre-allocated readback buffer — zero allocation
+    const pixels = this._readbackBuffer;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
     gl.readPixels(0, 0, w, h, gl.RGBA, gl.FLOAT, pixels);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
 
+    // Sample every 4th pixel for speed (still highly accurate)
+    const stride = 4;
     let sum = 0;
-    const total = w * h;
-    for (let i = 0; i < total; i++) {
-      sum += pixels[i * 4]; // R channel = state value
+    let count = 0;
+    for (let i = 0; i < total; i += stride) {
+      sum += pixels[i << 2]; // R channel
+      count++;
     }
-    return sum / total;
+    return count > 0 ? sum / count : 0;
   }
 
   destroy() {

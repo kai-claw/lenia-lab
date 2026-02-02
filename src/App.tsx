@@ -56,10 +56,14 @@ function App() {
   // Mutation mode state
   const [mutation, setMutation] = useState(false);
 
-  // Population chart state
+  // Population chart state — ring buffer (no array.shift())
   const [showPopChart, setShowPopChart] = useState(false);
-  const popHistoryRef = useRef<number[]>([]);
+  const popRingRef = useRef({ buf: new Float64Array(POP_CHART_SAMPLES), idx: 0, count: 0 });
   const popCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Performance monitor state
+  const [perfWarning, setPerfWarning] = useState(false);
+  const perfRef = useRef({ lowCount: 0, highCount: 0, degraded: false });
 
   // Advanced params (initialized from default species)
   const [dt, setDt] = useState(SPECIES[DEFAULT_SPECIES].dt);
@@ -316,7 +320,13 @@ function App() {
   // ── Population Tracker: sparkline chart ──
   const handlePopChartToggle = useCallback(() => {
     setShowPopChart(prev => {
-      if (!prev) popHistoryRef.current = [];
+      if (!prev) {
+        // Reset ring buffer
+        const ring = popRingRef.current;
+        ring.buf.fill(0);
+        ring.idx = 0;
+        ring.count = 0;
+      }
       return !prev;
     });
   }, []);
@@ -327,9 +337,12 @@ function App() {
     const interval = setInterval(() => {
       if (!canvasRef.current) return;
       const density = canvasRef.current.readDensity();
-      const history = popHistoryRef.current;
-      history.push(density);
-      if (history.length > POP_CHART_SAMPLES) history.shift();
+
+      // Ring buffer insert (O(1) — no array.shift())
+      const ring = popRingRef.current;
+      ring.buf[ring.idx] = density;
+      ring.idx = (ring.idx + 1) % POP_CHART_SAMPLES;
+      ring.count = Math.min(ring.count + 1, POP_CHART_SAMPLES);
 
       // Draw sparkline
       const canvas = popCanvasRef.current;
@@ -339,30 +352,39 @@ function App() {
 
       const w = canvas.width;
       const h = canvas.height;
+      const n = ring.count;
       ctx.clearRect(0, 0, w, h);
 
-      if (history.length < 2) return;
+      if (n < 2) return;
 
-      const max = Math.max(...history, 0.01);
+      // Manual max (avoids Math.max(...spread) stack pressure)
+      let max = 0.01;
+      const startIdx = (ring.idx - n + POP_CHART_SAMPLES) % POP_CHART_SAMPLES;
+      for (let i = 0; i < n; i++) {
+        const v = ring.buf[(startIdx + i) % POP_CHART_SAMPLES];
+        if (v > max) max = v;
+      }
 
       // Fill area
       ctx.beginPath();
       ctx.moveTo(0, h);
-      for (let i = 0; i < history.length; i++) {
+      for (let i = 0; i < n; i++) {
+        const v = ring.buf[(startIdx + i) % POP_CHART_SAMPLES];
         const x = (i / (POP_CHART_SAMPLES - 1)) * w;
-        const y = h - (history[i] / max) * h * 0.9;
+        const y = h - (v / max) * h * 0.9;
         ctx.lineTo(x, y);
       }
-      ctx.lineTo(((history.length - 1) / (POP_CHART_SAMPLES - 1)) * w, h);
+      ctx.lineTo(((n - 1) / (POP_CHART_SAMPLES - 1)) * w, h);
       ctx.closePath();
       ctx.fillStyle = 'rgba(0, 255, 136, 0.15)';
       ctx.fill();
 
       // Line
       ctx.beginPath();
-      for (let i = 0; i < history.length; i++) {
+      for (let i = 0; i < n; i++) {
+        const v = ring.buf[(startIdx + i) % POP_CHART_SAMPLES];
         const x = (i / (POP_CHART_SAMPLES - 1)) * w;
-        const y = h - (history[i] / max) * h * 0.9;
+        const y = h - (v / max) * h * 0.9;
         if (i === 0) ctx.moveTo(x, y);
         else ctx.lineTo(x, y);
       }
@@ -374,11 +396,11 @@ function App() {
       ctx.shadowBlur = 0;
 
       // Current value label
-      const currentDensity = history[history.length - 1];
+      const current = ring.buf[(ring.idx - 1 + POP_CHART_SAMPLES) % POP_CHART_SAMPLES];
       ctx.fillStyle = '#00ff88';
       ctx.font = '11px monospace';
       ctx.textAlign = 'right';
-      ctx.fillText(`${(currentDensity * 100).toFixed(1)}%`, w - 4, 14);
+      ctx.fillText(`${(current * 100).toFixed(1)}%`, w - 4, 14);
       ctx.fillStyle = 'rgba(255,255,255,0.5)';
       ctx.font = '9px sans-serif';
       ctx.fillText('density', w - 4, 25);
@@ -386,6 +408,36 @@ function App() {
 
     return () => clearInterval(interval);
   }, [showPopChart]);
+
+  // ── Performance Monitor: auto-degrade at sustained low FPS ──
+  useEffect(() => {
+    if (!isRunning) return;
+    const perf = perfRef.current;
+
+    const check = setInterval(() => {
+      if (fps > 0 && fps < 30) {
+        perf.lowCount++;
+        perf.highCount = 0;
+        if (perf.lowCount >= 3 && !perf.degraded) {
+          // Auto-degrade: reduce speed to 1
+          perf.degraded = true;
+          setPerfWarning(true);
+          setSpeed(prev => Math.min(prev, 1));
+        }
+      } else if (fps >= 45) {
+        perf.highCount++;
+        perf.lowCount = 0;
+        if (perf.highCount >= 5 && perf.degraded) {
+          perf.degraded = false;
+          setPerfWarning(false);
+        }
+      } else {
+        perf.lowCount = Math.max(0, perf.lowCount - 1);
+      }
+    }, 1000);
+
+    return () => clearInterval(check);
+  }, [isRunning, fps]);
 
   const handleGridResize = useCallback((size: number) => {
     setGridSize(size);
@@ -434,6 +486,9 @@ function App() {
             </span>
             <span className={`stat ${fps < 20 ? 'stat-fps-bad' : fps < 40 ? 'stat-fps-warn' : ''}`} aria-label={`Frames per second: ${fps}`}>{fps} FPS</span>
             <span className="stat" aria-label={`Grid size: ${gridSize} by ${gridSize}`}>{gridSize}×{gridSize}</span>
+            {perfWarning && (
+              <span className="stat stat-perf-warn" aria-label="Performance warning — speed reduced" title="Auto-reduced speed for better performance">⚠️ Perf</span>
+            )}
           </div>
         </header>
 
