@@ -654,7 +654,7 @@ function App() {
             <button className="btn-link" onClick={handleToggleHelp} aria-label="Show keyboard shortcuts">
               Press <kbd>H</kbd> for shortcuts
             </button>
-            <a href="https://github.com/c-goro" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/kai-claw/lenia-lab" target="_blank" rel="noopener noreferrer">
               GitHub
             </a>
           </div>
