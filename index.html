@@ -12,6 +12,9 @@
 
     <!-- PWA Manifest -->
     <link rel="manifest" href="/lenia-lab/manifest.json" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Lenia Lab" />
 
     <!-- Favicon -->
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧬</text></svg>" />
@@ -22,15 +25,17 @@
     <meta property="og:description" content="Interactive GPU-accelerated Lenia simulator. Explore 10+ artificial life species with real-time WebGL rendering." />
     <meta property="og:url" content="https://kai-claw.github.io/lenia-lab/" />
     <meta property="og:site_name" content="Lenia Lab" />
-    <meta property="og:image" content="https://kai-claw.github.io/lenia-lab/og-image.png" />
-    <meta property="og:image:alt" content="Lenia Lab — continuous cellular automata with colorful artificial life organisms" />
+    <meta property="og:image" content="https://kai-claw.github.io/lenia-lab/og-image.svg" />
+    <meta property="og:image:alt" content="Lenia Lab — continuous artificial life simulation with glowing organisms on a dark background" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Lenia Lab — Continuous Cellular Automata" />
     <meta name="twitter:description" content="Interactive GPU-accelerated Lenia simulator. Explore 10+ artificial life species." />
-    <meta name="twitter:image" content="https://kai-claw.github.io/lenia-lab/og-image.png" />
-    <meta name="twitter:image:alt" content="Lenia Lab — continuous cellular automata with colorful artificial life organisms" />
+    <meta name="twitter:image" content="https://kai-claw.github.io/lenia-lab/og-image.svg" />
+    <meta name="twitter:image:alt" content="Lenia Lab — continuous artificial life simulation with glowing organisms" />
 
     <!-- JSON-LD Structured Data -->
     <script type="application/ld+json">
@@ -38,13 +43,22 @@
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "Lenia Lab",
-      "description": "Interactive continuous cellular automata simulator inspired by Lenia",
+      "description": "Interactive continuous cellular automata simulator inspired by Lenia — explore artificial life with GPU-accelerated WebGL, 10 species, mutation mode, and cinematic autoplay",
       "url": "https://kai-claw.github.io/lenia-lab/",
       "applicationCategory": "Simulation",
       "operatingSystem": "Web Browser",
-      "author": { "@type": "Person", "name": "kai-claw" },
+      "browserRequirements": "WebGL 1.0",
+      "softwareVersion": "1.0.0",
+      "author": { "@type": "Person", "name": "kai-claw", "url": "https://github.com/kai-claw" },
       "license": "https://opensource.org/licenses/MIT",
-      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" },
+      "keywords": ["lenia", "cellular automata", "artificial life", "WebGL", "simulation"],
+      "isBasedOn": {
+        "@type": "ScholarlyArticle",
+        "name": "Lenia: Biology of Artificial Life",
+        "author": { "@type": "Person", "name": "Bert Wang-Chak Chan" },
+        "url": "https://arxiv.org/abs/2005.03742"
+      }
     }
     </script>
 
@@ -69,7 +83,7 @@
       }
       @keyframes spin { to { transform: rotate(360deg); } }
     </style>
-    <script type="module" crossorigin src="/lenia-lab/assets/index-DzXP115u.js"></script>
+    <script type="module" crossorigin src="/lenia-lab/assets/index-9pzDnHkX.js"></script>
     <link rel="stylesheet" crossorigin href="/lenia-lab/assets/index-6LeVhdUQ.css">
   </head>
   <body>
