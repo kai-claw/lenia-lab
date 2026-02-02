@@ -75,7 +75,7 @@ export function Controls({
           <button className="btn" onClick={onStep} aria-label="Advance one step">⏭ Step</button>
         </div>
         <div className="button-row">
-          <button className="btn" onClick={onRandomize} aria-label="Randomize state">🎲 Random</button>
+          <button className="btn" onClick={onRandomize} aria-label="Seed creatures">🎲 Seed</button>
           <button className="btn btn-danger" onClick={onClear} aria-label="Clear simulation">🗑️ Clear</button>
         </div>
 

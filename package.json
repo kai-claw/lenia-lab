@@ -1,7 +1,7 @@
 {
   "name": "lenia-lab",
   "private": true,
-  "version": "0.1.0",
+  "version": "1.0.0",
   "type": "module",
   "description": "Interactive continuous cellular automata simulator inspired by Lenia — explore artificial life with GPU-accelerated WebGL",
   "homepage": "https://kai-claw.github.io/lenia-lab/",
