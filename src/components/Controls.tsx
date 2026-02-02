@@ -65,7 +65,7 @@ export function Controls({
         <h3 className="section-title">⚡ Simulation</h3>
         <div className="button-row">
           <button
-            className={`btn ${isRunning ? 'btn-active' : ''}`}
+            className={`btn ${isRunning ? 'btn-active btn-playing' : ''}`}
             onClick={onToggleRun}
             aria-label={isRunning ? 'Pause simulation' : 'Play simulation'}
             aria-pressed={isRunning}

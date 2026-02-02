@@ -111,9 +111,10 @@ export const LeniaCanvas = forwardRef<LeniaCanvasHandle, Props>(({
       growthRef.current = species.growth;
       dtRef.current = species.dt;
       
-      // Generate initial random state
-      const state = generateRandomState(gridWidth, gridHeight, 0.5);
-      renderer.setState(state);
+      // Place creature at center for immediate visual impact (not random noise)
+      renderer.clear();
+      const pattern = generateCreaturePattern('orbium', 64);
+      renderer.stamp(pattern, 64, 0.5, 0.5);
       
       // Initial display
       renderer.display(colorMapRef.current);

@@ -14,9 +14,9 @@ function App() {
   
   // Simulation state
   const [species, setSpecies] = useState<string>('orbium');
-  const [isRunning, setIsRunning] = useState(false);
+  const [isRunning, setIsRunning] = useState(true);  // Auto-start for instant wow
   const [speed, setSpeed] = useState(1);
-  const [colorMap, setColorMap] = useState(0);
+  const [colorMap, setColorMap] = useState(1);  // Magma — most striking first impression
   const [gridSize, setGridSize] = useState(256);
   const [brushSize, setBrushSize] = useState(0.03);
   const [tool, setTool] = useState<'draw' | 'erase' | 'stamp'>('draw');
@@ -259,12 +259,24 @@ function App() {
           <main className="canvas-area" role="main" aria-label="Simulation display">
             {/* Cinematic species badge */}
             {cinematic && cinematicSpecies && SPECIES[cinematicSpecies] && (
-              <div className="cinematic-badge" aria-live="polite">
+              <div className="cinematic-badge" aria-live="polite" key={cinematicSpecies}>
                 <div className="cinematic-badge-indicator" />
                 <div className="cinematic-badge-content">
                   <span className="cinematic-badge-name">{SPECIES[cinematicSpecies].name}</span>
                   <span className="cinematic-badge-desc">{SPECIES[cinematicSpecies].description}</span>
                 </div>
+                <div className="cinematic-badge-progress">
+                  <div className="cinematic-badge-progress-fill" />
+                </div>
+              </div>
+            )}
+            {/* Instructions bar */}
+            {!cinematic && (
+              <div className="instructions-bar" aria-hidden="true">
+                <span><kbd>Space</kbd> Play/Pause</span>
+                <span><kbd>E</kbd> Petri Dish</span>
+                <span><kbd>A</kbd> Cinematic</span>
+                <span><kbd>H</kbd> Help</span>
               </div>
             )}
             <LeniaCanvas
