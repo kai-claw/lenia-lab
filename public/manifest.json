@@ -1,0 +1,17 @@
+{
+  "name": "Lenia Lab",
+  "short_name": "Lenia Lab",
+  "description": "Interactive continuous cellular automata simulator inspired by Lenia — explore artificial life with GPU-accelerated WebGL",
+  "start_url": "/lenia-lab/",
+  "display": "standalone",
+  "background_color": "#0a0a1a",
+  "theme_color": "#0a0a1a",
+  "categories": ["education", "entertainment", "science"],
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧬</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
+    }
+  ]
+}

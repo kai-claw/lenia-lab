@@ -601,9 +601,10 @@ function App() {
 
             {/* Instructions bar */}
             <div className="instructions-bar" aria-hidden="true">
-              <span><kbd>Space</kbd> Play/Pause</span>
+              <span><kbd>Space</kbd> Play</span>
+              <span><kbd>R</kbd> Randomize</span>
               <span><kbd>E</kbd> Petri Dish</span>
-              <span><kbd>A</kbd> Cinematic</span>
+              <span><kbd>A</kbd> Autoplay</span>
               <span><kbd>M</kbd> Mutate</span>
               <span><kbd>P</kbd> Pop Chart</span>
               <span><kbd>H</kbd> Help</span>
