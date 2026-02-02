@@ -311,8 +311,11 @@ function App() {
             <span className="subtitle">Continuous Artificial Life</span>
           </div>
           <div className="header-right">
-            <span className="stat" aria-label={`Step count: ${stepCount}`}>Step: {stepCount}</span>
-            <span className="stat" aria-label={`Frames per second: ${fps}`}>{fps} FPS</span>
+            <span className={`stat ${isRunning ? 'stat-live' : ''}`} aria-label={`Step count: ${stepCount}`}>
+              <span className={`heartbeat ${isRunning ? '' : 'heartbeat-off'}`} aria-hidden="true" />
+              Step: {stepCount}
+            </span>
+            <span className={`stat ${fps < 20 ? 'stat-fps-bad' : fps < 40 ? 'stat-fps-warn' : ''}`} aria-label={`Frames per second: ${fps}`}>{fps} FPS</span>
             <span className="stat" aria-label={`Grid size: ${gridSize} by ${gridSize}`}>{gridSize}×{gridSize}</span>
           </div>
         </header>
@@ -354,6 +357,9 @@ function App() {
           </aside>
 
           <main className="canvas-area" role="main" aria-label="Simulation display">
+            {/* Canvas vignette for cinematic depth */}
+            <div className="canvas-vignette" aria-hidden="true" />
+
             {/* Cinematic species badge with progress */}
             {cinematic && cinematicSpecies && SPECIES[cinematicSpecies] && (
               <div className="cinematic-badge" aria-live="polite">

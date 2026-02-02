@@ -80,7 +80,7 @@ export function Controls({
         </div>
 
         <label className="slider-label" id="speed-label">
-          Speed: ×{speed}
+          Speed: <span className="slider-value">×{speed}</span>
           <input
             type="range" min="1" max="10" step="1"
             value={speed}
@@ -148,7 +148,7 @@ export function Controls({
           ))}
         </div>
         <label className="slider-label" id="brush-label">
-          Brush Size: {brushSize.toFixed(2)}
+          Brush Size: <span className="slider-value">{brushSize.toFixed(2)}</span>
           <input
             type="range" min="0.01" max="0.15" step="0.005"
             value={brushSize}
@@ -206,7 +206,7 @@ export function Controls({
         {showAdvanced && (
           <div className="advanced-params" id="advanced-params">
             <label className="slider-label" id="dt-label">
-              dt: {dt.toFixed(3)}
+              dt: <span className="slider-value">{dt.toFixed(3)}</span>
               <input
                 type="range" min="0.01" max="0.5" step="0.005"
                 value={dt}
@@ -215,7 +215,7 @@ export function Controls({
               />
             </label>
             <label className="slider-label" id="mu-label">
-              Growth μ: {growthMu.toFixed(4)}
+              Growth μ: <span className="slider-value">{growthMu.toFixed(4)}</span>
               <input
                 type="range" min="0.01" max="0.5" step="0.001"
                 value={growthMu}
@@ -224,7 +224,7 @@ export function Controls({
               />
             </label>
             <label className="slider-label" id="sigma-label">
-              Growth σ: {growthSigma.toFixed(4)}
+              Growth σ: <span className="slider-value">{growthSigma.toFixed(4)}</span>
               <input
                 type="range" min="0.001" max="0.1" step="0.001"
                 value={growthSigma}

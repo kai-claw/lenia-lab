@@ -67,6 +67,44 @@
   padding: 0.2rem 0.6rem;
   border-radius: 4px;
   border: 1px solid rgba(255,255,255,0.04);
+  transition: color 0.3s ease, border-color 0.3s ease;
+}
+
+.stat-live {
+  color: #7ee787;
+  border-color: rgba(126, 231, 135, 0.15);
+}
+
+.stat-fps-warn {
+  color: #e3b341;
+  border-color: rgba(227, 179, 65, 0.15);
+}
+
+.stat-fps-bad {
+  color: #f85149;
+  border-color: rgba(248, 81, 73, 0.15);
+}
+
+/* ── Header heartbeat — living indicator when running ─────────── */
+.heartbeat {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #3fb950;
+  margin-right: 0.3rem;
+  vertical-align: middle;
+  animation: heartbeat 1.5s ease-in-out infinite;
+}
+
+.heartbeat-off {
+  background: #484f58;
+  animation: none;
+}
+
+@keyframes heartbeat {
+  0%, 100% { opacity: 1; transform: scale(1); box-shadow: 0 0 4px #3fb950; }
+  50% { opacity: 0.5; transform: scale(0.8); box-shadow: 0 0 8px #3fb950; }
 }
 
 /* ── Main Layout ───────────────────────────────────────────────── */
@@ -461,12 +499,14 @@
 
 .select-input:hover {
   border-color: #58a6ff88;
+  background: #1c2128;
 }
 
 .select-input:focus {
   outline: none;
   border-color: #58a6ff;
   box-shadow: 0 0 8px rgba(88, 166, 255, 0.15);
+  background: #1c2128;
 }
 
 /* ── Advanced Params ───────────────────────────────────────────── */
@@ -538,6 +578,8 @@
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
+  text-shadow: none;
+  filter: drop-shadow(0 0 12px rgba(188, 140, 255, 0.15));
 }
 
 .gallery-intro {
@@ -652,6 +694,11 @@
   padding: 0.1rem 0.4rem;
   border-radius: 4px;
   border: 1px solid #21262d;
+  transition: border-color 0.2s ease;
+}
+
+.version-badge:hover {
+  border-color: #30363d;
 }
 
 /* ── Error Boundary ─────────────────────────────────────────────── */
@@ -741,6 +788,7 @@
   -webkit-text-fill-color: transparent;
   background-clip: text;
   text-shadow: none;
+  filter: drop-shadow(0 0 10px rgba(188, 140, 255, 0.12));
 }
 
 .help-grid {
