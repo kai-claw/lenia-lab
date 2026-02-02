@@ -11,6 +11,7 @@ export interface LeniaCanvasHandle {
   setDt: (dt: number) => void;
   stampCreature: (pattern: Float32Array, size: number, uvX: number, uvY: number) => void;
   resize: (w: number, h: number) => void;
+  readDensity: () => number;
 }
 
 interface Props {
@@ -30,12 +31,15 @@ interface Props {
   onToggleHelp: () => void;
   onPetriDish?: () => void;
   onCinematicToggle?: () => void;
+  onMutationToggle?: () => void;
+  onPopChartToggle?: () => void;
 }
 
 export const LeniaCanvas = forwardRef<LeniaCanvasHandle, Props>(({
   gridWidth, gridHeight, isRunning, speed, colorMap, species,
   brushSize, tool, onFpsUpdate, onStepUpdate,
   onToggleRun, onRandomize, onClear, onToggleHelp, onPetriDish, onCinematicToggle,
+  onMutationToggle, onPopChartToggle,
 }, ref) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rendererRef = useRef<LeniaRenderer | null>(null);
@@ -223,12 +227,20 @@ export const LeniaCanvas = forwardRef<LeniaCanvasHandle, Props>(({
         case 'A':
           onCinematicToggle?.();
           break;
+        case 'm':
+        case 'M':
+          onMutationToggle?.();
+          break;
+        case 'p':
+        case 'P':
+          onPopChartToggle?.();
+          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onToggleRun, onRandomize, onClear, onToggleHelp, onPetriDish, onCinematicToggle]);
+  }, [onToggleRun, onRandomize, onClear, onToggleHelp, onPetriDish, onCinematicToggle, onMutationToggle, onPopChartToggle]);
 
   // Mouse/touch drawing handlers
   const getUV = useCallback((e: { clientX: number; clientY: number }) => {
@@ -334,6 +346,9 @@ export const LeniaCanvas = forwardRef<LeniaCanvasHandle, Props>(({
         stepRef.current = 0;
         onStepUpdate(0);
       }
+    },
+    readDensity() {
+      return rendererRef.current?.readAverageDensity() ?? 0;
     },
   }), [onStepUpdate]);
 

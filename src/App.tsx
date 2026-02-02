@@ -19,6 +19,12 @@ import {
   GROWTH_MU_RANGE,
   GROWTH_SIGMA_RANGE,
   DT_RANGE,
+  MUTATION_INTERVAL,
+  MUTATION_MU_STEP,
+  MUTATION_SIGMA_STEP,
+  MUTATION_DT_STEP,
+  POP_CHART_SAMPLES,
+  POP_SAMPLE_INTERVAL,
 } from './constants';
 import { smoothstep, lerp, safeClamp } from './utils';
 import './App.css';
@@ -46,6 +52,14 @@ function App() {
   const [cinematicSpecies, setCinematicSpecies] = useState<string | null>(null);
   const [cinematicProgress, setCinematicProgress] = useState(0);
   const cinematicTimerRef = useRef(0);
+
+  // Mutation mode state
+  const [mutation, setMutation] = useState(false);
+
+  // Population chart state
+  const [showPopChart, setShowPopChart] = useState(false);
+  const popHistoryRef = useRef<number[]>([]);
+  const popCanvasRef = useRef<HTMLCanvasElement>(null);
 
   // Advanced params (initialized from default species)
   const [dt, setDt] = useState(SPECIES[DEFAULT_SPECIES].dt);
@@ -267,6 +281,112 @@ function App() {
     return () => cancelAnimationFrame(animId);
   }, [cinematic]);
 
+  // ── Mutation Mode: random walk on growth params ──
+  const handleMutationToggle = useCallback(() => {
+    setMutation(prev => !prev);
+  }, []);
+
+  useEffect(() => {
+    if (!mutation) return;
+
+    const interval = setInterval(() => {
+      setGrowthMu(prev => {
+        const next = prev + (Math.random() - 0.5) * 2 * MUTATION_MU_STEP;
+        const clamped = Math.max(GROWTH_MU_RANGE.min, Math.min(GROWTH_MU_RANGE.max, next));
+        if (canvasRef.current) canvasRef.current.setGrowth({ mu: clamped, sigma: growthSigma });
+        return clamped;
+      });
+      setGrowthSigma(prev => {
+        const next = prev + (Math.random() - 0.5) * 2 * MUTATION_SIGMA_STEP;
+        const clamped = Math.max(GROWTH_SIGMA_RANGE.min, Math.min(GROWTH_SIGMA_RANGE.max, next));
+        if (canvasRef.current) canvasRef.current.setGrowth({ mu: growthMu, sigma: clamped });
+        return clamped;
+      });
+      setDt(prev => {
+        const next = prev + (Math.random() - 0.5) * 2 * MUTATION_DT_STEP;
+        const clamped = Math.max(DT_RANGE.min, Math.min(DT_RANGE.max, next));
+        if (canvasRef.current) canvasRef.current.setDt(clamped);
+        return clamped;
+      });
+    }, MUTATION_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [mutation]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Population Tracker: sparkline chart ──
+  const handlePopChartToggle = useCallback(() => {
+    setShowPopChart(prev => {
+      if (!prev) popHistoryRef.current = [];
+      return !prev;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!showPopChart) return;
+
+    const interval = setInterval(() => {
+      if (!canvasRef.current) return;
+      const density = canvasRef.current.readDensity();
+      const history = popHistoryRef.current;
+      history.push(density);
+      if (history.length > POP_CHART_SAMPLES) history.shift();
+
+      // Draw sparkline
+      const canvas = popCanvasRef.current;
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+
+      const w = canvas.width;
+      const h = canvas.height;
+      ctx.clearRect(0, 0, w, h);
+
+      if (history.length < 2) return;
+
+      const max = Math.max(...history, 0.01);
+
+      // Fill area
+      ctx.beginPath();
+      ctx.moveTo(0, h);
+      for (let i = 0; i < history.length; i++) {
+        const x = (i / (POP_CHART_SAMPLES - 1)) * w;
+        const y = h - (history[i] / max) * h * 0.9;
+        ctx.lineTo(x, y);
+      }
+      ctx.lineTo(((history.length - 1) / (POP_CHART_SAMPLES - 1)) * w, h);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(0, 255, 136, 0.15)';
+      ctx.fill();
+
+      // Line
+      ctx.beginPath();
+      for (let i = 0; i < history.length; i++) {
+        const x = (i / (POP_CHART_SAMPLES - 1)) * w;
+        const y = h - (history[i] / max) * h * 0.9;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = '#00ff88';
+      ctx.lineWidth = 2;
+      ctx.shadowColor = '#00ff88';
+      ctx.shadowBlur = 6;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+
+      // Current value label
+      const currentDensity = history[history.length - 1];
+      ctx.fillStyle = '#00ff88';
+      ctx.font = '11px monospace';
+      ctx.textAlign = 'right';
+      ctx.fillText(`${(currentDensity * 100).toFixed(1)}%`, w - 4, 14);
+      ctx.fillStyle = 'rgba(255,255,255,0.5)';
+      ctx.font = '9px sans-serif';
+      ctx.fillText('density', w - 4, 25);
+    }, POP_SAMPLE_INTERVAL);
+
+    return () => clearInterval(interval);
+  }, [showPopChart]);
+
   const handleGridResize = useCallback((size: number) => {
     setGridSize(size);
     if (canvasRef.current) {
@@ -350,6 +470,10 @@ function App() {
               onPetriDish={handlePetriDish}
               cinematic={cinematic}
               onCinematicToggle={handleCinematicToggle}
+              mutation={mutation}
+              onMutationToggle={handleMutationToggle}
+              showPopChart={showPopChart}
+              onPopChartToggle={handlePopChartToggle}
             />
           </aside>
 
@@ -373,6 +497,31 @@ function App() {
                 </div>
               </div>
             )}
+            {/* Mutation mode indicator */}
+            {mutation && (
+              <div className="mutation-badge" aria-live="polite">
+                <span className="mutation-badge-icon">🧬</span>
+                <span className="mutation-badge-text">Mutating</span>
+                <span className="mutation-badge-params">
+                  μ={growthMu.toFixed(4)} σ={growthSigma.toFixed(4)} dt={dt.toFixed(3)}
+                </span>
+              </div>
+            )}
+
+            {/* Population density chart */}
+            {showPopChart && (
+              <div className="pop-chart-container">
+                <div className="pop-chart-title">📊 Population Density</div>
+                <canvas
+                  ref={popCanvasRef}
+                  className="pop-chart-canvas"
+                  width={260}
+                  height={80}
+                  aria-label="Population density chart"
+                />
+              </div>
+            )}
+
             <LeniaCanvas
               ref={canvasRef}
               gridWidth={gridSize}
@@ -391,6 +540,8 @@ function App() {
               onToggleHelp={handleToggleHelp}
               onPetriDish={handlePetriDish}
               onCinematicToggle={handleCinematicToggle}
+              onMutationToggle={handleMutationToggle}
+              onPopChartToggle={handlePopChartToggle}
             />
 
             {/* Instructions bar */}
@@ -398,6 +549,8 @@ function App() {
               <span><kbd>Space</kbd> Play/Pause</span>
               <span><kbd>E</kbd> Petri Dish</span>
               <span><kbd>A</kbd> Cinematic</span>
+              <span><kbd>M</kbd> Mutate</span>
+              <span><kbd>P</kbd> Pop Chart</span>
               <span><kbd>H</kbd> Help</span>
             </div>
 
@@ -425,6 +578,8 @@ function App() {
                     <div className="help-row"><kbd>C</kbd><span>Clear</span></div>
                     <div className="help-row"><kbd>E</kbd><span>Petri Dish — seed ecosystem</span></div>
                     <div className="help-row"><kbd>A</kbd><span>Cinematic autoplay</span></div>
+                    <div className="help-row"><kbd>M</kbd><span>Mutation mode — evolving params</span></div>
+                    <div className="help-row"><kbd>P</kbd><span>Population density chart</span></div>
                     <div className="help-row"><kbd>H</kbd><span>Toggle this help</span></div>
                   </div>
                   <p className="help-hint">Click canvas to draw. Switch tools in the sidebar.</p>

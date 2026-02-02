@@ -32,6 +32,16 @@ export const PLACEMENT_MARGIN = 0.15;
 /** Default brush size (UV fraction) */
 export const DEFAULT_BRUSH_SIZE = 0.03;
 
+/** Mutation mode: random walk interval (ms) and step sizes */
+export const MUTATION_INTERVAL = 500;
+export const MUTATION_MU_STEP = 0.003;
+export const MUTATION_SIGMA_STEP = 0.001;
+export const MUTATION_DT_STEP = 0.005;
+
+/** Population tracker: ring buffer size and sample interval (ms) */
+export const POP_CHART_SAMPLES = 200;
+export const POP_SAMPLE_INTERVAL = 100;
+
 /** Growth param safe ranges */
 export const GROWTH_MU_RANGE = { min: 0.01, max: 0.5, fallback: 0.15 } as const;
 export const GROWTH_SIGMA_RANGE = { min: 0.001, max: 0.1, fallback: 0.015 } as const;

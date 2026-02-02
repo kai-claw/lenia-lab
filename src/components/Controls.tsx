@@ -31,6 +31,10 @@ interface ControlsProps {
   onPetriDish: () => void;
   cinematic: boolean;
   onCinematicToggle: () => void;
+  mutation: boolean;
+  onMutationToggle: () => void;
+  showPopChart: boolean;
+  onPopChartToggle: () => void;
 }
 
 const COLOR_MAP_NAMES = ['Viridis', 'Magma', 'Inferno', 'Plasma', 'Ocean', 'Neon'];
@@ -57,6 +61,7 @@ export function Controls({
   onRandomize, onClear, onToggleGallery, onToggleAdvanced,
   onDtChange, onGrowthMuChange, onGrowthSigmaChange, onToggleHelp,
   onPetriDish, cinematic, onCinematicToggle,
+  mutation, onMutationToggle, showPopChart, onPopChartToggle,
 }: ControlsProps) {
   return (
     <div className="controls-panel" role="region" aria-label="Simulation controls">
@@ -127,6 +132,22 @@ export function Controls({
           aria-pressed={cinematic}
         >
           {cinematic ? '⏹ Stop Cinematic' : '🎬 Cinematic Autoplay'}
+        </button>
+        <button
+          className={`btn btn-full ${mutation ? 'btn-mutation-active' : 'btn-mutation'}`}
+          onClick={onMutationToggle}
+          aria-label={mutation ? 'Stop mutation mode' : 'Start mutation mode'}
+          aria-pressed={mutation}
+        >
+          {mutation ? '⏹ Stop Mutation' : '🧬 Mutation Mode'}
+        </button>
+        <button
+          className={`btn btn-full ${showPopChart ? 'btn-active' : ''}`}
+          onClick={onPopChartToggle}
+          aria-label={showPopChart ? 'Hide population chart' : 'Show population chart'}
+          aria-pressed={showPopChart}
+        >
+          {showPopChart ? '📊 Hide Pop Chart' : '📊 Population Chart'}
         </button>
       </section>
 

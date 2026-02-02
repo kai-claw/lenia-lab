@@ -395,6 +395,28 @@ export class LeniaRenderer {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
   }
 
+  /**
+   * Read average cell density from current state (for population tracking)
+   */
+  readAverageDensity(): number {
+    const gl = this.gl;
+    const fb = this.currentTex === 'A' ? this.fbA! : this.fbB!;
+    const w = this._gridWidth;
+    const h = this._gridHeight;
+    const pixels = new Float32Array(w * h * 4);
+
+    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.FLOAT, pixels);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+    let sum = 0;
+    const total = w * h;
+    for (let i = 0; i < total; i++) {
+      sum += pixels[i * 4]; // R channel = state value
+    }
+    return sum / total;
+  }
+
   destroy() {
     const gl = this.gl;
     if (this.texA) gl.deleteTexture(this.texA);

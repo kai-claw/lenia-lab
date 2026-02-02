@@ -17,6 +17,12 @@ import {
   GROWTH_MU_RANGE,
   GROWTH_SIGMA_RANGE,
   DT_RANGE,
+  MUTATION_INTERVAL,
+  MUTATION_MU_STEP,
+  MUTATION_SIGMA_STEP,
+  MUTATION_DT_STEP,
+  POP_CHART_SAMPLES,
+  POP_SAMPLE_INTERVAL,
 } from '../constants';
 
 import { smoothstep, lerp, safeClamp } from '../utils';
@@ -353,5 +359,79 @@ describe('Dead code removal', () => {
 
   it('Gallery module is removed', async () => {
     await expect(import('../components/Gallery' as string)).rejects.toThrow();
+  });
+});
+
+// ─── Mutation Mode Constants ──────────────────────────────────────
+
+describe('Mutation mode constants', () => {
+  it('MUTATION_INTERVAL is a positive number', () => {
+    expect(MUTATION_INTERVAL).toBeGreaterThan(0);
+    expect(Number.isFinite(MUTATION_INTERVAL)).toBe(true);
+  });
+
+  it('MUTATION_MU_STEP is small enough for gradual drift', () => {
+    expect(MUTATION_MU_STEP).toBeGreaterThan(0);
+    expect(MUTATION_MU_STEP).toBeLessThan(0.05);
+  });
+
+  it('MUTATION_SIGMA_STEP is small enough for gradual drift', () => {
+    expect(MUTATION_SIGMA_STEP).toBeGreaterThan(0);
+    expect(MUTATION_SIGMA_STEP).toBeLessThan(0.02);
+  });
+
+  it('MUTATION_DT_STEP is small enough for gradual drift', () => {
+    expect(MUTATION_DT_STEP).toBeGreaterThan(0);
+    expect(MUTATION_DT_STEP).toBeLessThan(0.05);
+  });
+
+  it('mutation steps stay within safe ranges after many walks', () => {
+    // Simulate 1000 random walks from center of range
+    let mu = 0.15;
+    let sigma = 0.015;
+    let dt = 0.1;
+    for (let i = 0; i < 1000; i++) {
+      mu += (Math.random() - 0.5) * 2 * MUTATION_MU_STEP;
+      mu = Math.max(GROWTH_MU_RANGE.min, Math.min(GROWTH_MU_RANGE.max, mu));
+      sigma += (Math.random() - 0.5) * 2 * MUTATION_SIGMA_STEP;
+      sigma = Math.max(GROWTH_SIGMA_RANGE.min, Math.min(GROWTH_SIGMA_RANGE.max, sigma));
+      dt += (Math.random() - 0.5) * 2 * MUTATION_DT_STEP;
+      dt = Math.max(DT_RANGE.min, Math.min(DT_RANGE.max, dt));
+    }
+    expect(mu).toBeGreaterThanOrEqual(GROWTH_MU_RANGE.min);
+    expect(mu).toBeLessThanOrEqual(GROWTH_MU_RANGE.max);
+    expect(sigma).toBeGreaterThanOrEqual(GROWTH_SIGMA_RANGE.min);
+    expect(sigma).toBeLessThanOrEqual(GROWTH_SIGMA_RANGE.max);
+    expect(dt).toBeGreaterThanOrEqual(DT_RANGE.min);
+    expect(dt).toBeLessThanOrEqual(DT_RANGE.max);
+  });
+});
+
+// ─── Population Tracker Constants ─────────────────────────────────
+
+describe('Population tracker constants', () => {
+  it('POP_CHART_SAMPLES is a reasonable buffer size', () => {
+    expect(POP_CHART_SAMPLES).toBeGreaterThanOrEqual(50);
+    expect(POP_CHART_SAMPLES).toBeLessThanOrEqual(1000);
+  });
+
+  it('POP_SAMPLE_INTERVAL is a reasonable sampling rate', () => {
+    expect(POP_SAMPLE_INTERVAL).toBeGreaterThanOrEqual(50);
+    expect(POP_SAMPLE_INTERVAL).toBeLessThanOrEqual(1000);
+  });
+
+  it('ring buffer capacity covers reasonable time window', () => {
+    const windowSeconds = (POP_CHART_SAMPLES * POP_SAMPLE_INTERVAL) / 1000;
+    expect(windowSeconds).toBeGreaterThanOrEqual(5);
+    expect(windowSeconds).toBeLessThanOrEqual(60);
+  });
+
+  it('ring buffer overflow trims correctly', () => {
+    const history: number[] = [];
+    for (let i = 0; i < POP_CHART_SAMPLES + 50; i++) {
+      history.push(Math.random());
+      if (history.length > POP_CHART_SAMPLES) history.shift();
+    }
+    expect(history.length).toBe(POP_CHART_SAMPLES);
   });
 });
